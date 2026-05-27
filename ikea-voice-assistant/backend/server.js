@@ -4,6 +4,7 @@ const cors = require('cors');
 
 const manualRoutes = require('./routes/manual');
 const elevenlabsRoutes = require('./routes/elevenlabs');
+const toolsRoutes = require('./routes/tools');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/api/manual', manualRoutes);
 app.use('/api/elevenlabs', elevenlabsRoutes);
+app.use('/api/tools', toolsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

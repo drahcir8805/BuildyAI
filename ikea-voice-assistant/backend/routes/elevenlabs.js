@@ -4,81 +4,92 @@ const axios = require('axios');
 
 const ELEVENLABS_BASE = 'https://api.elevenlabs.io/v1';
 
-const BASE_PERSONA = `You are IKEA Assistant, a calm and patient voice guide that helps people build IKEA furniture hands-free. You are like a knowledgeable friend sitting next to them on the floor — steady, clear, and unflappable when things go wrong.
+const AGENT_SYSTEM_PROMPT = `You are a calm, patient, and friendly assembly assistant. Your job is to guide users through building or assembling things — furniture, electronics, toys, anything — completely hands-free using voice.
 
-Starting a session
-When the conversation begins, greet the user warmly and ask what they're building. Accept any of these:
-- A product name ("I'm building a KALLAX")
-- An article number
-- A vague description ("it's a big white bookshelf with 4 shelves")
+When the conversation starts, greet the user warmly and ask: "What are we building today?"
 
-If they give you a vague description, ask one clarifying question to identify the product. Once you've identified it, confirm: "Got it — let's build your [PRODUCT NAME] together."
+When the user tells you what they're building:
+1. Call the find_assembly_instructions tool with the product name right away.
+2. Once you have the instructions, confirm the product: "Got it — let's build your [PRODUCT NAME] together."
+3. Optionally offer to read the parts list first, or jump straight to Step 1.
 
-If you cannot identify the product, ask them to describe the box or any text on the manual.
+Guiding the build:
+- Walk through ONE step at a time. Never skip ahead.
+- Wait for the user to say "done", "next", "okay", or "ready" before advancing.
+- Keep each instruction SHORT and spoken — no lists, no bullet points. Natural speech only.
+- Always tell them WHICH parts or hardware to grab BEFORE telling them what to do.
+- Count pieces when it matters: "You'll need exactly 4 of the small silver screws."
 
-Guiding the build
-Walk through the build ONE step at a time. Never read ahead.
+When things go wrong:
+- Stay calm always. Frustration is normal.
+- If something is stuck or won't fit: troubleshoot gently before asking them to undo work.
+- If they're confused: slow down, simplify, repeat.
+- If they want to go back: recap the previous step clearly.
 
-After each step, wait for the user to say something like "done", "okay", "next", or "got it" before continuing.
+When all steps are complete, congratulate them enthusiastically.`;
 
-Keep each instruction SHORT and spoken — you are a voice, not a manual. No bullet points, no lists. Just clear natural sentences.
+const FIND_INSTRUCTIONS_TOOL = {
+  type: 'client',
+  name: 'find_assembly_instructions',
+  description: 'Search online and find step-by-step assembly or setup instructions for a product. Call this as soon as the user tells you what they are building.',
+  parameters: {
+    type: 'object',
+    properties: {
+      product_name: {
+        type: 'string',
+        description: 'The exact name or model of the product to find instructions for (e.g. "IKEA KALLAX", "LEGO Technic 42151", "MALM bed frame")',
+      },
+    },
+    required: ['product_name'],
+  },
+};
 
-Always say which parts and hardware they need BEFORE describing what to do with them. ("Grab the two long side panels and four of the small wooden dowels...")
+router.post('/setup', async (req, res) => {
+  try {
+    const agentId = process.env.ELEVENLABS_AGENT_ID;
+    if (!agentId) return res.status(500).json({ error: 'ELEVENLABS_AGENT_ID not configured' });
 
-Count pieces out loud when it matters. ("You'll need exactly 8 of the small silver screws for this step.")
+    const patchBody = {
+      conversation_config: {
+        agent: {
+          prompt: {
+            prompt: AGENT_SYSTEM_PROMPT,
+            tools: [FIND_INSTRUCTIONS_TOOL],
+          },
+          first_message: "Hey! I'm your assembly assistant. What are we building today?",
+        },
+      },
+    };
 
-When things go wrong
-Users will get confused, frustrated, or make mistakes. This is normal. Stay calm always.
+    if (process.env.ELEVENLABS_VOICE_ID) {
+      patchBody.conversation_config.tts = { voice_id: process.env.ELEVENLABS_VOICE_ID };
+    }
 
-If they say something is stuck, stripped, or won't fit: troubleshoot gently before suggesting they undo work.
+    await axios.patch(`${ELEVENLABS_BASE}/convai/agents/${agentId}`, patchBody, {
+      headers: {
+        'xi-api-key': process.env.ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
 
-If they skipped a step accidentally: help them figure out the least disruptive way to fix it.
-
-If they're frustrated: acknowledge it, slow down, and simplify your language.
-
-If they ask to go back: recap the previous step clearly and help them re-check their work.`;
-
-function buildAssistantPrompt({ productName, parts, steps }) {
-  const partsList = parts
-    .map((p) => `  - ${p.name} (x${p.quantity}, ID: ${p.id})`)
-    .join('\n');
-
-  const stepsList = steps
-    .map((s) => {
-      let line = `  Step ${s.stepNumber}: ${s.title}\n    ${s.description}`;
-      if (s.warning) line += `\n    ⚠️ Warning: ${s.warning}`;
-      return line;
-    })
-    .join('\n\n');
-
-  return `${BASE_PERSONA}
-
-Manual data for this session — ${productName}:
-
-Parts list:
-${partsList}
-
-Assembly steps:
-${stepsList}
-
-You are now specifically helping the user build the ${productName}. Use the steps and parts above as your guide. Start by greeting them and confirming the product, then walk through Step 1.`;
-}
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Agent setup error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to configure agent' });
+  }
+});
 
 router.get('/signed-url', async (req, res) => {
   try {
     const agentId = process.env.ELEVENLABS_AGENT_ID;
-    if (!agentId) {
-      return res.status(500).json({ error: 'ELEVENLABS_AGENT_ID not configured' });
-    }
+    if (!agentId) return res.status(500).json({ error: 'ELEVENLABS_AGENT_ID not configured' });
 
-    const response = await axios.get(
-      `${ELEVENLABS_BASE}/convai/conversation/get_signed_url`,
-      {
-        params: { agent_id: agentId },
-        headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY },
-        timeout: 10000,
-      }
-    );
+    const response = await axios.get(`${ELEVENLABS_BASE}/convai/conversation/get_signed_url`, {
+      params: { agent_id: agentId },
+      headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY },
+      timeout: 10000,
+    });
 
     res.json({ signedUrl: response.data.signed_url });
   } catch (err) {
@@ -87,55 +98,7 @@ router.get('/signed-url', async (req, res) => {
   }
 });
 
-router.post('/update-agent', async (req, res) => {
-  try {
-    const { steps, productName, parts } = req.body;
-
-    if (!steps || !productName || !parts) {
-      return res.status(400).json({ error: 'Missing steps, productName, or parts' });
-    }
-
-    const agentId = process.env.ELEVENLABS_AGENT_ID;
-    if (!agentId) {
-      return res.status(500).json({ error: 'ELEVENLABS_AGENT_ID not configured' });
-    }
-
-    const systemPrompt = buildAssistantPrompt({ productName, parts, steps });
-
-    const agentConfig = {
-      conversation_config: {
-        agent: {
-          prompt: {
-            prompt: systemPrompt,
-          },
-          first_message: `Hi! I'm here to help you build your ${productName}. Before we start, lay out all your parts somewhere you can see them. Ready when you are — shall I walk you through the parts list first, or go straight to Step 1?`,
-        },
-      },
-    };
-
-    if (process.env.ELEVENLABS_VOICE_ID) {
-      agentConfig.conversation_config.tts = {
-        voice_id: process.env.ELEVENLABS_VOICE_ID,
-      };
-    }
-
-    await axios.patch(
-      `${ELEVENLABS_BASE}/convai/agents/${agentId}`,
-      agentConfig,
-      {
-        headers: {
-          'xi-api-key': process.env.ELEVENLABS_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      }
-    );
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Update agent error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to update ElevenLabs agent' });
-  }
-});
+// Legacy endpoint — kept for backward compat
+router.post('/update-agent', async (req, res) => res.redirect(307, '/api/elevenlabs/setup'));
 
 module.exports = router;

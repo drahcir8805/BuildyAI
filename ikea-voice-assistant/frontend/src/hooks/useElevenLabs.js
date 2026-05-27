@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { Conversation } from '@elevenlabs/client';
 
-export function useElevenLabs() {
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+
+export function useElevenLabs({ onManualFound } = {}) {
   const [status, setStatus] = useState('idle');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -10,12 +12,33 @@ export function useElevenLabs() {
 
   const startConversation = useCallback(async (signedUrl) => {
     if (conversationRef.current) return;
-
     setStatus('connecting');
 
     try {
       const conversation = await Conversation.startSession({
         signedUrl,
+
+        clientTools: {
+          find_assembly_instructions: async ({ product_name }) => {
+            console.log('Tool called: find_assembly_instructions for', product_name);
+            try {
+              const res = await fetch(`${BACKEND_URL}/api/tools/find-instructions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_name }),
+              });
+
+              if (!res.ok) throw new Error(`Backend error ${res.status}`);
+              const data = await res.json();
+
+              if (onManualFound) onManualFound(data);
+              return data;
+            } catch (err) {
+              console.error('find_assembly_instructions tool error:', err);
+              return { error: 'Could not find instructions. Try describing what you are building.' };
+            }
+          },
+        },
 
         onConnect: () => {
           setStatus('connected');
@@ -59,11 +82,10 @@ export function useElevenLabs() {
       setStatus('error');
       throw err;
     }
-  }, []);
+  }, [onManualFound]);
 
   const endConversation = useCallback(async () => {
     if (!conversationRef.current) return;
-
     try {
       await conversationRef.current.endSession();
     } catch (err) {
