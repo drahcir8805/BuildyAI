@@ -1,28 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
   body {
-    @apply bg-gray-950 text-white min-h-screen;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(ellipse at center, #2D1B69 0%, #0F0720 70%);
+    min-height: 100vh;
+    color: #fff;
+    overflow: hidden;
   }
 }
 
-@layer utilities {
-  .orb-idle {
-    animation: glow 2s ease-in-out infinite;
-  }
+/* ── Orb animations ─────────────────────────────────────────────── */
 
-  .orb-listening .ring-1 {
-    animation: pulseRing 1.5s ease-out infinite;
-  }
+@keyframes buildy-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
-  .orb-listening .ring-2 {
-    animation: pulseRing 1.5s ease-out infinite 0.4s;
-  }
+@keyframes buildy-pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.55; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
 
-  .orb-listening .ring-3 {
-    animation: pulseRing 1.5s ease-out infinite 0.8s;
-  }
+@keyframes buildy-blob {
+  0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50%  { border-radius: 50% 50% 40% 60% / 40% 50% 60% 50%; }
+  75%  { border-radius: 40% 60% 60% 40% / 70% 40% 50% 30%; }
+  100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+}
+
+@keyframes buildy-blob-shimmer {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes buildy-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(1); }
+}
+
+@keyframes buildy-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility classes */
+.buildy-orb-idle-ring  { animation: buildy-rotate 8s linear infinite; }
+.buildy-pulse-ring     { animation: buildy-pulse-ring 2.2s ease-out infinite; }
+.buildy-blob-morph     { animation: buildy-blob 3s ease-in-out infinite; }
+.buildy-blob-shimmer   { animation: buildy-blob-shimmer 6s linear infinite; }
+.buildy-bar            { animation: buildy-bar 1.1s ease-in-out infinite; transform-origin: center; }
+.buildy-fade-up        { animation: buildy-fade-up 400ms cubic-bezier(0.4,0,0.2,1) both; }
+
+/* Glass card primitive */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 }
