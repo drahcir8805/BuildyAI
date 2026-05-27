@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-white min-h-screen;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  .orb-idle {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .orb-listening .ring-1 {
+    animation: pulseRing 1.5s ease-out infinite;
+  }
+
+  .orb-listening .ring-2 {
+    animation: pulseRing 1.5s ease-out infinite 0.4s;
+  }
+
+  .orb-listening .ring-3 {
+    animation: pulseRing 1.5s ease-out infinite 0.8s;
+  }
+}
