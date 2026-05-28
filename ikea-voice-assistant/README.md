@@ -1,10 +1,8 @@
-# IKEA Assembly Voice Assistant
+#  Assembly Voice Assistant
 
 An AI-powered voice assistant that guides you through IKEA furniture assembly step by step, using ElevenLabs Conversational AI and Claude for manual parsing.
 
 ## Features
-
-- **PDF Parsing**: Upload a local PDF, paste a URL, or enter an IKEA article number to auto-fetch the manual
 - **AI Understanding**: Claude extracts structured steps, parts lists, tools, and warnings from the manual
 - **Voice Assistant**: Talk to the assistant hands-free — ask about parts, request repeats, say "next" to advance steps
 - **Visual Tracker**: See your progress through all assembly steps with a highlighted current step
@@ -68,9 +66,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Usage
 
-1. Enter an IKEA article number (e.g. `503.498.48`), paste a PDF URL, or upload a PDF file
-2. Click **Load Manual** — Claude will parse the manual in ~5–10 seconds
-3. Once the assembly view loads, tap the **Voice Orb** to start the conversation
+1. Tap the **Voice Orb** to start the conversation
 4. Allow microphone access when prompted
 5. The assistant greets you and reads Step 1 — say **"next"** to advance, ask questions naturally
 
@@ -99,7 +95,6 @@ ikea-voice-assistant/
 
 ## Troubleshooting
 
-**"IKEA PDF not found"** — IKEA's PDF URLs vary by region and product. Try pasting the direct URL from the IKEA product page (look for the "Assembly instructions" link), or download and upload the PDF directly.
 
 **Microphone permission denied** — The browser requires HTTPS or localhost for microphone access. Make sure you're on `http://localhost:5173`.
 
